@@ -1,7 +1,199 @@
 <!DOCTYPE html>
 <html>
-<body>
-<h1>Hello World</h1>
-<p>I'm hosted with GitHub Pages.</p>
-</body>
+	<head>
+
+
+
+		<meta charset="utf-8">
+		<title>Analisador Lexico</title>
+		<link href="css/app.css" rel="stylesheet">
+		<script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+		<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.3.1/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">
+		<script src="https://stackpath.bootstrapcdn.com/bootstrap/3.3.1/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/typeahead.js/0.11.1/typeahead.bundle.min.js"></script>
+		<script src="js/plugins.js"></script>
+		<script src="js/app.js"></script>
+	</head>
+
+	<body>
+		<div class="header">
+			<div class="divTitle">
+				<h2>Analisador Lexico</h2>
+				<br>
+			</div>
+		</div>
+		<div class="forms">
+			<form class="adicionaCampo" method="POST">
+				<div class="form-row align-items-center">
+					<div class="col-auto">
+					<input type="text" class="adiciona palavrasParaAdicionar form-control mb-2" placeholder="Adicionar Palavras..."/>
+					<input class="btn btn-primary mb-2 adicionaButton" type="button" value="Adicionar">
+					</div>
+				</div>
+			</form>
+		<div class="form-group">
+			<form  class="procuraCampo form-row" action="" method="POST">
+				<div class="form-group col-md-9">
+					<input type="text" class="procura form-control" placeholder="Digite uma palavra..." value=""/>
+				</div>
+
+			</form>
+		</div>
+		</div>
+
+		<div class="modal" tabindex="-1" role="dialog">
+		  <div class="modal-dialog" role="document">
+		    <div class="modal-content">
+		      <div class="modal-header">
+						<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+							<span aria-hidden="true">&times;</span>
+						</button>
+		        <h5 class="modal-title"></h5>
+		      </div>
+		      <div class="modal-body">
+		        <p><h3 class="inform"></h3>.</p>
+		      </div>
+		      <div class="modal-footer">
+		      </div>
+		    </div>
+		  </div>
+		</div>
+
+
+
+		<div class="tabela">
+		</div>
+
+			<script>
+			 var insere="";
+			$(".adicionaButton").click(function(){
+			    insere = $(".adiciona").val()+" ";
+					$(".procura").val("");
+					$(".inform").text("");
+
+				$.ajax({
+					type:"post",
+					url:"gerar_tabela.php",
+					data:{
+						palavras: insere
+					},
+					success:function(retorno){
+						$(".tabela").html(retorno);
+					}
+				})
+			});
+
+			// busca
+
+			$(".procura").keyup(function(){ // captura o click
+				var busca = $(".procura").val();
+				if($(".modal-header").hasClass("highlightRed")){
+					$(".modal-header").removeClass("highlightRed");
+				}
+
+				if(busca.length == 0){
+					$(".highlightGreen").removeClass("highlightGreen");
+					$(".highlightRed").removeClass("highlightRed");
+				}
+				if(busca.length == 1 && event.keyCode != 8){
+					if($(".highlightGreen").length > busca.length){
+						$(".highlightGreen").removeClass("highlightGreen");
+					}
+
+				}
+
+				if(event.keyCode == 8){
+					if(busca.length == 0){
+						$(".highlightGreen").removeClass("highlightGreen");
+						$(".highlightRed").removeClass("highlightRed");
+						$(".inform").text("");
+					}else if($(".highlightRed").last().length == 0){
+						$(".highlightGreen").last().removeClass("highlightGreen");
+					}else if($(".highlightRed").last().length != 0){
+						$(".highlightRed").last().removeClass("highlightRed");
+}
+				} else {
+					var processa=true;
+					$.ajax({
+						type:"post",
+						url:"verifica_token.php",
+						data:{
+							palavra: busca,
+							process: processa,
+							palavras: insere
+						},
+						dataType:"json",
+
+						success:function(retorno){
+							processa = retorno.processa;
+							var positionLine=retorno.posicaolinha;
+							var positionColumn=retorno.posicaoColuna;
+							var final = retorno.final;
+							var buscaOk = busca.substring(0, busca.length - 1);
+							if(processa==true){
+								$("."+positionColumn).addClass("highlightGreen");
+								if(final){
+									$(".modal-header").removeClass("highlightRed");
+									$(".f"+positionColumn).addClass("highlightGreen");
+									$(".inform").text("Palavra: " + buscaOk + ", encontrada no dicionário!");
+									$(".modal-header").addClass("highlightGreen");
+									$(".modal-title").text("SUCESSO!");
+									$(".modal").modal();
+									$(".procura").val("");
+								}else if(final == false){
+									var teste = busca.length;
+									$('tr#'+teste).addClass("highlightRed");
+									$(".inform").text("Palavra digita não se encontra no dicinário, apague até o ponto de erro, ou digite outra palavra!");
+									$(".modal-header").addClass("highlightRed");
+									$(".modal-title").text("ERRO!");
+									$(".modal").modal();
+								}
+							} else {
+								var teste = busca.length;
+								var outro = positionLine+1;
+								$('tr#'+teste+' td:nth-child('+outro+')').addClass("highlightRed");
+								$(".inform").text("Palavra digita não se encontra no dicinário, apague até o ponto de erro, ou digite outra palavra!");
+								$(".modal-header").addClass("highlightRed");
+								$(".modal-title").text("ERRO!");
+								$(".modal").modal();
+							}
+						}
+					})
+			}
+
+			});
+
+			</script>
+
+		<style type="text/css">
+		.forms{
+			margin: 0% 30%;
+		}
+		.highlightGreen{
+			background-color: #b0ffa6;
+		}
+		.highlightRed{
+			background-color: #ff8787;
+		}
+		.divTitle{
+			text-align: center;
+		}
+		.palavrasParaAdicionar{
+			width: 80%;
+			display: inline-block;
+		}
+		.procuraCampo{
+			margin-left: 7%;
+		}
+		table{
+			    border-collapse: collapse;
+			    float: right;
+			    margin-right: 5%;
+			    width: 90%;
+			    height: 50%;
+			    background-color:white;
+			}
+		</style>
+	</body>
 </html>
+
